@@ -50,14 +50,12 @@ public class RSA {
         alph.put('э', 568);
         alph.put('ю', 578);
         alph.put('я', 618);
-
         alph.put(' ', 628);
         alph.put(',', 638);
         alph.put('.', 648);
         alph.put('-', 658);
         alph.put('?', 668);
         alph.put('!', 678);
-
         alph.put('А', 718);
         alph.put('Б', 728);
         alph.put('В', 738);
@@ -116,13 +114,13 @@ public class RSA {
             Numbers n = new Numbers(p.mul(q).toStr());
             System.out.println("n = " + n.toStr());
             Numbers fi;
-            if (p.toStr().equals(q.toStr())) {
-                fi = new Numbers(new Numbers(Numbers.pow(p, 2).toStr()).sub(p).toStr());
-            }
-            else {
+//            if (p.toStr().equals(q.toStr())) {
+//                fi = new Numbers(new Numbers(Numbers.pow(p, 2).toStr()).sub(p).toStr());
+//            }
+//            else {
                 fi = new Numbers(p.sub(new Numbers("1")).toStr());
                 fi = new Numbers(fi.mul(new Numbers(q.sub(new Numbers("1")).toStr())).toStr());
-            }
+           // }
             System.out.println("fi = " + fi.toStr());
 
             writer.write("n: " + n.toStr() + "\n");
@@ -133,7 +131,7 @@ public class RSA {
 
             while (true) {
                 Random random = new Random();
-                r = 2 + random.nextInt(100);
+                r = 2 + random.nextInt(128);
                 e = rnd(r);
                 if (gcd(e, fi).toStr().equals("1") && e.compareTo(new Numbers("1")) == 1 && e.compareTo(fi) == -1)
                     break;
@@ -240,6 +238,7 @@ public class RSA {
 
     public static ArrayList<Numbers> convert(Numbers n) {
         String s = "";
+        String mess = "";
         try (FileReader reader = new FileReader("message.txt");
         Scanner scanner = new Scanner(reader)){
             while (scanner.hasNext()) {
@@ -247,7 +246,8 @@ public class RSA {
                 for (Character character: ch)
                     for (Map.Entry<Character, Integer> pair: alph.entrySet()) {
                         if (pair.getKey().equals(character)) {
-                            System.out.print(pair.getKey());
+                            System.out.println("Коды: " + pair.getKey() + " " + pair.getValue());
+                            mess += pair.getKey();
                             s += String.valueOf(pair.getValue());
                             break;
                         }
@@ -260,6 +260,7 @@ public class RSA {
         }
 
         ArrayList<Numbers> list = new ArrayList<>();
+        System.out.println("Сообщение: " + mess);
         System.out.println("Сконкатенированное число: " + s);
         Numbers number = new Numbers(s);
         if (number.compareTo(n) != -1) {
@@ -276,6 +277,7 @@ public class RSA {
                         s = "";
                     }
                 }
+                System.out.println(maxx.toStr());
                 list.add(maxx);
             }
         }
@@ -308,11 +310,14 @@ public class RSA {
 
     public static void decryption(Numbers d, Numbers n) {
         String s = "";
+        System.out.println();
         try (FileReader fileReader = new FileReader("encrypt.txt");
-             Scanner scanner = new Scanner(fileReader);FileWriter fileWriter = new FileWriter("decrypt.txt")){
+             Scanner scanner = new Scanner(fileReader);FileWriter fileWriter = new FileWriter("decrypt.txt");
+             FileWriter fileWriter2 = new FileWriter("decryptBlocks.txt")){
             while (scanner.hasNextLine()) {
                 Numbers a = new Numbers(scanner.nextLine());
                 Numbers temp = new Numbers(Numbers.modPow(a, d, n).toStr());
+                fileWriter2.write(temp.toStr() + "\n");
                 s += temp.toStr();
             }
 
@@ -325,6 +330,7 @@ public class RSA {
             for (String str: strings)
                 for (Map.Entry<Character, Integer> pair: alph.entrySet()) {
                     if (pair.getValue() == Integer.parseInt(str)) {
+                        System.out.println("Коды: " + pair.getKey() + " " + pair.getValue());
                         fileWriter.write(pair.getKey());
                         break;
                     }
