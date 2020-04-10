@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 
 public class Solution {
     public static void main(String[] args) {
@@ -15,61 +16,79 @@ public class Solution {
                 System.out.println("Введите p, p > 1:");
                 String p = reader.readLine();
 
-                if (!Numbers.isNumber(p) || new Numbers(p).compareTo(new Numbers("1")) != 1)
+                if (!isNumber(p) || new BigInteger(p).compareTo(new BigInteger("1")) != 1)
                 {
                     throw new NumberFormatException();
                 }
 
-                if (!RSA.MillerRabinTest(new Numbers(p), 130)) {
+                if (!RSA.soloveyShtrassIsPrime(new BigInteger(p), 130)) {
                     System.out.println("Ошибка! Вы ввели составное p!");
                     return;
                 }
 
                 System.out.println("Введите q, q > 2 (если p = 2, то введедите q > 3):");
                 String q = reader.readLine();
-
-                if (!Numbers.isNumber(q) || new Numbers(q).compareTo(new Numbers("2")) != 1 || (p.equals("2") && new Numbers(q).compareTo(new Numbers("3")) != 1))
+                if (p.equals(q)) {
+                    System.out.println("Ошибка p не должно быть равно q");
+                    return;
+                }
+                if (!isNumber(q) || new BigInteger(q).compareTo(new BigInteger("2")) != 1 || (p.equals("2") && new BigInteger(q).compareTo(new BigInteger("3")) != 1))
                 {
                     throw new NumberFormatException();
                 }
 
-                if (!RSA.MillerRabinTest(new Numbers(q), 130)) {
+                if (!RSA.soloveyShtrassIsPrime(new BigInteger(q), 130)) {
                     System.out.println("Ошибка! Вы ввели составное q!");
                     return;
                 }
 
-                RSA.generate(new Numbers(p), new Numbers(q));
+                RSA.generate(new BigInteger(p), new BigInteger(q));
             }
             else if (k == 1) {
                 System.out.println("Введите e:");
                 String e = reader.readLine();
-                if (!Numbers.isNumber(e)) {
+                if (!isNumber(e)) {
                     throw new NumberFormatException();
                 }
                 System.out.println("Введите n:");
                 String n = reader.readLine();
-                if (!Numbers.isNumber(n)) {
+                if (!isNumber(n)) {
                     throw new NumberFormatException();
                 }
-                RSA.encryption(new Numbers(e), new Numbers(n));
+                RSA.encryption(new BigInteger(e), new BigInteger(n));
             }
                 else {
                 System.out.println("Введите d:");
                 String d = reader.readLine();
-                if (!Numbers.isNumber(d)) {
+                if (!isNumber(d)) {
                     throw new NumberFormatException();
                 }
                 System.out.println("Введите n:");
                 String n = reader.readLine();
-                if (!Numbers.isNumber(n)) {
+                if (!isNumber(n)) {
                     throw new NumberFormatException();
                 }
-                RSA.decryption(new Numbers(d), new Numbers(n));
+                RSA.decryption(new BigInteger(d), new BigInteger(n));
             }
 
         }
         catch (IOException | NumberFormatException e) {
             System.out.println("Ошибка! Некорректный ввод");
+        }
+    }
+
+    static boolean isNumber(String s) {
+        char[] a = s.toCharArray();
+        if (a[0] == '0' && a.length > 1) {
+            return false;
+        } else {
+            for(int i = 0; i < a.length; ++i) {
+                if (a[i] < '0' || a[i] > '9') {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

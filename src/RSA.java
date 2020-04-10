@@ -1,10 +1,12 @@
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.*;
 
 public class RSA {
-    private  static Map<Character, Integer> alph = new TreeMap<>();
+    private static Map<Character, Integer> alph = new TreeMap<>();
 
     static {
         alph.put('0', 18);
@@ -50,7 +52,6 @@ public class RSA {
         alph.put('э', 568);
         alph.put('ю', 578);
         alph.put('я', 618);
-        alph.put(' ', 628);
         alph.put(',', 638);
         alph.put('.', 648);
         alph.put('-', 658);
@@ -91,9 +92,9 @@ public class RSA {
         alph.put('Я', 1458);
     }
 
-    public static Numbers rnd(int k) {
+    public static BigInteger rnd(int k) {
 
-        Numbers resN = new Numbers("0");
+        BigInteger resN = new BigInteger("0");
         ArrayList<Boolean> bits = new ArrayList<>();
         Random brand = new Random();
         for (int i = 0; i < k; i++) {
@@ -102,79 +103,69 @@ public class RSA {
 
         for (int i = 0; i < bits.size(); i++) {
             if (bits.get(i)) {
-                resN = resN.add(Numbers.pow(new Numbers("2"), i));
+                resN = resN.add(new BigInteger("2").pow(i));
             }
         }
         return resN;
     }
 
-    public static void generate(Numbers p, Numbers q) {
+    public static void generate(BigInteger p, BigInteger q) {
 
         try (FileWriter writer = new FileWriter("keys.txt")) {
-            Numbers n = new Numbers(p.mul(q).toStr());
-            System.out.println("n = " + n.toStr());
-            Numbers fi;
-//            if (p.toStr().equals(q.toStr())) {
-//                fi = new Numbers(new Numbers(Numbers.pow(p, 2).toStr()).sub(p).toStr());
-//            }
-//            else {
-                fi = new Numbers(p.sub(new Numbers("1")).toStr());
-                fi = new Numbers(fi.mul(new Numbers(q.sub(new Numbers("1")).toStr())).toStr());
-           // }
-            System.out.println("fi = " + fi.toStr());
+            BigInteger n = p.multiply(q);
+            System.out.println("n = " + n);
+            BigInteger fi = p.subtract(new BigInteger("1"));
+            fi = fi.multiply(q.subtract(new BigInteger("1")));
+            System.out.println("fi = " + fi);
 
-            writer.write("n: " + n.toStr() + "\n");
+            writer.write("n: " + n + "\n");
 
-            Numbers e;
-            Numbers d;
+            BigInteger e;
+            BigInteger d;
             int r;
 
             while (true) {
                 Random random = new Random();
                 r = 2 + random.nextInt(128);
                 e = rnd(r);
-                if (gcd(e, fi).toStr().equals("1") && e.compareTo(new Numbers("1")) == 1 && e.compareTo(fi) == -1)
+                if (e.gcd(fi).equals(new BigInteger("1")) && e.compareTo(new BigInteger("1")) == 1 && e.compareTo(fi) == -1)
                     break;
             }
 
-            writer.write("e: " + e.toStr() + "\n");
+            writer.write("e: " + e + "\n");
 
-            System.out.println("e = " + e.toStr());
+            System.out.println("e = " + e);
             d = RSA.modInverse(e, fi);
 
-            System.out.println("e * d (mod fi) = " + Numbers.modPow(new Numbers(e.mul(d).toStr()), new Numbers("1"), fi).toStr());
+            System.out.println("e * d (mod fi) = " + (e.multiply(d)).mod(fi));
 
-            writer.write("d: " + d.toStr() + "\n");
+            writer.write("d: " + d + "\n");
 
-            System.out.println("d = " + d.toStr());
-        }
-        catch (IOException e) {
+            System.out.println("d = " + d);
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
 
+    public static BigInteger modInverse(BigInteger a, BigInteger m) {
+        BigInteger m0 = m;
+        BigInteger y = new BigInteger("0");
+        BigInteger x = new BigInteger("1");
 
-    public static Numbers modInverse(Numbers a, Numbers m)
-    {
-        Numbers m0 = m;
-        Numbers y = new Numbers("0");
-        Numbers x = new Numbers("1");
-
-        if (m.toStr().equals("1"))
-            return new Numbers("0");
+        if (m.equals(new BigInteger("1")))
+            return new BigInteger("0");
 
         boolean fy = true;
         boolean ft = true;
         boolean fx = true;
 
-        while (a.compareTo(new Numbers("1")) == 1)
-        {
-            Numbers q = new Numbers(Numbers.div(a, m).toStr());
+        while (a.compareTo(new BigInteger("1")) == 1) {
+            BigInteger q = a.divide(m);
 
-            Numbers t = m;
+            BigInteger t = m;
 
-            m = new Numbers(Numbers.mod(a, m).toStr());
+            m = a.mod(m);
 
             a = t;
 
@@ -184,141 +175,120 @@ public class RSA {
                 ft = false;
             else ft = true;
 
-            if (x.compareTo(new Numbers(q.mul(y).toStr())) == 1 && fy && fx) {
-                y = new Numbers(x.sub(new Numbers(q.mul(y).toStr())).toStr());
+            if (x.compareTo(q.multiply(y)) == 1 && fy && fx) {
+                y = x.subtract(q.multiply(y));
                 fy = true;
-            }
-
-            else if (x.toStr().equals(q.mul(y).toStr()) && fy && fx) {
-                y = new Numbers("0");
+            } else if (x.equals(q.multiply(y)) && fy && fx) {
+                y = new BigInteger("0");
                 fy = true;
-            }
+            } else if (x.compareTo(q.multiply(y)) == -1 && fy && fx) {
 
-            else if (x.compareTo(new Numbers(q.mul(y).toStr())) == -1 && fy && fx) {
-
-                y = new Numbers((new Numbers(q.mul(y).toStr())).sub(x).toStr());
+                y = (q.multiply(y)).subtract(x);
                 fy = false;
 
-            }
-            else if (x.compareTo(new Numbers(q.mul(y).toStr())) == 1 && !fy && !fx) {
-                y = new Numbers(x.sub(new Numbers(q.mul(y).toStr())).toStr());
+            } else if (x.compareTo(q.multiply(y)) == 1 && !fy && !fx) {
+                y = x.subtract(q.multiply(y));
                 fy = false;
-            }
-
-            else if (x.toStr().equals(q.mul(y).toStr()) && !fy && !fx) {
-                y = new Numbers("0");
+            } else if (x.equals(q.multiply(y)) && !fy && !fx) {
+                y = new BigInteger("0");
                 fy = true;
-            }
-
-            else if (x.compareTo(new Numbers(q.mul(y).toStr())) == -1 && !fy && !fx) {
-                y = new Numbers((new Numbers(q.mul(y).toStr())).sub(x).toStr());
+            } else if (x.compareTo(q.multiply(y)) == -1 && !fy && !fx) {
+                y = (q.multiply(y)).subtract(x);
                 fy = true;
-            }
-            else if (!fx && fy) {
-                y = new Numbers(x.add(new Numbers(q.mul(y).toStr())).toStr());
+            } else if (!fx && fy) {
+                y = x.add(q.multiply(y));
                 fy = false;
-            }
-            else if (fx && !fy) {
-                y = new Numbers(x.add(new Numbers(q.mul(y).toStr())).toStr());
+            } else if (fx && !fy) {
+                y = x.add(q.multiply(y));
                 fy = true;
             }
 
             x = t;
             if (!ft) {
                 fx = false;
-            }
-            else fx = true;
+            } else fx = true;
         }
 
         if (!fx)
-            x = new Numbers(m0.sub(x).toStr());
+            x = m0.subtract(x);
 
         return x;
     }
 
-    public static ArrayList<Numbers> convert(Numbers n) {
+    public static ArrayList<BigInteger> convert(BigInteger n) {
         String s = "";
         String mess = "";
         try (FileReader reader = new FileReader("message.txt");
-        Scanner scanner = new Scanner(reader)){
+             Scanner scanner = new Scanner(reader)) {
             while (scanner.hasNext()) {
                 char[] ch = scanner.nextLine().toCharArray();
-                for (Character character: ch)
-                    for (Map.Entry<Character, Integer> pair: alph.entrySet()) {
+                for (Character character : ch)
+                    for (Map.Entry<Character, Integer> pair : alph.entrySet()) {
                         if (pair.getKey().equals(character)) {
                             System.out.println("Коды: " + pair.getKey() + " " + pair.getValue());
                             mess += pair.getKey();
                             s += String.valueOf(pair.getValue());
                             break;
                         }
-                 }
+                    }
             }
             System.out.println();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
-        ArrayList<Numbers> list = new ArrayList<>();
+        ArrayList<BigInteger> list = new ArrayList<>();
         System.out.println("Сообщение: " + mess);
         System.out.println("Сконкатенированное число: " + s);
-        Numbers number = new Numbers(s);
+        BigInteger number = new BigInteger(s);
         if (number.compareTo(n) != -1) {
             while (!s.equals("")) {
-                Numbers maxx = new Numbers(s.substring(0, 1));
+                BigInteger maxx = new BigInteger(s.substring(0, 1));
                 for (int i = 1; i < s.length() + 1; i++) {
-                    if (new Numbers(s.substring(0, i)).compareTo(n) != -1) {
+                    if (new BigInteger(s.substring(0, i)).compareTo(n) != -1) {
                         s = s.substring(i - 1);
                         break;
                     }
-                    if (maxx.compareTo(new Numbers(s.substring(0, i))) == -1 && new Numbers(s.substring(0, i)).compareTo(n) == -1)
-                        maxx = new Numbers(s.substring(0, i));
+                    if (maxx.compareTo(new BigInteger(s.substring(0, i))) == -1 && new BigInteger(s.substring(0, i)).compareTo(n) == -1)
+                        maxx = new BigInteger(s.substring(0, i));
                     if (i == s.length()) {
                         s = "";
                     }
                 }
-                System.out.println(maxx.toStr());
+                System.out.println(maxx);
                 list.add(maxx);
             }
-        }
-        else {
+        } else {
             list.add(number);
         }
-            return list;
+        return list;
     }
 
-    public static Numbers gcd(Numbers a, Numbers b) {
-
-        if (a.toStr().equals("0")) return b;
-        return gcd(new Numbers(Numbers.mod(b, a).toStr()), a);
-    }
-
-    public static void encryption(Numbers e, Numbers n) {
+    public static void encryption(BigInteger e, BigInteger n) {
         try (FileWriter writer = new FileWriter("encrypt.txt")) {
 
-            ArrayList<Numbers> mess = RSA.convert(n);
+            ArrayList<BigInteger> mess = RSA.convert(n);
 
-            for (Numbers numbers : mess) {
-                Numbers temp = new Numbers(Numbers.modPow(numbers, e, n).toStr());
-                writer.write(temp.toStr() + "\n");
+            for (BigInteger numbers : mess) {
+                BigInteger temp = numbers.modPow(e, n);
+                writer.write(temp + "\n");
             }
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
-    public static void decryption(Numbers d, Numbers n) {
+    public static void decryption(BigInteger d, BigInteger n) {
         String s = "";
         System.out.println();
         try (FileReader fileReader = new FileReader("encrypt.txt");
-             Scanner scanner = new Scanner(fileReader);FileWriter fileWriter = new FileWriter("decrypt.txt");
-             FileWriter fileWriter2 = new FileWriter("decryptBlocks.txt")){
+             Scanner scanner = new Scanner(fileReader); FileWriter fileWriter = new FileWriter("decrypt.txt");
+             FileWriter fileWriter2 = new FileWriter("decryptBlocks.txt")) {
             while (scanner.hasNextLine()) {
-                Numbers a = new Numbers(scanner.nextLine());
-                Numbers temp = new Numbers(Numbers.modPow(a, d, n).toStr());
-                fileWriter2.write(temp.toStr() + "\n");
-                s += temp.toStr();
+                BigInteger a = new BigInteger(scanner.nextLine());
+                BigInteger temp = a.modPow(d, n);
+                fileWriter2.write(temp + "\n");
+                s += temp.toString();
             }
 
             System.out.println("Сконкатенированное число: " + s);
@@ -327,90 +297,79 @@ public class RSA {
             for (int i = 0; i < strings.length; i++) {
                 strings[i] = strings[i] + "8";
             }
-            for (String str: strings)
-                for (Map.Entry<Character, Integer> pair: alph.entrySet()) {
+            for (String str : strings)
+                for (Map.Entry<Character, Integer> pair : alph.entrySet()) {
                     if (pair.getValue() == Integer.parseInt(str)) {
                         System.out.println("Коды: " + pair.getKey() + " " + pair.getValue());
                         fileWriter.write(pair.getKey());
                         break;
                     }
                 }
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
-    static int bits(Numbers n) {
-        int k = 0;
-        while (!n.toStr().equals("0")) {
-            n = Numbers.div(n, new Numbers("2"));
-            k++;
-        }
-        return k;
-    }
+    public static BigInteger jacobi(BigInteger a, BigInteger b) {
 
-    static boolean MillerRabinTest(Numbers n, int k) {
+        if (!a.gcd(b).equals(BigInteger.ONE)) return BigInteger.ZERO;
+        BigInteger r = BigInteger.ONE;
 
-        if (n.toStr().equals("2") || n.toStr().equals("3"))
-            return true;
-
-        if (n.compareTo(new Numbers("2")) == - 1 || Numbers.mod(n, new Numbers("2")).toStr().equals("0"))
-            return false;
-
-        Numbers t = new Numbers(n.sub(new Numbers("1")).toStr());
-
-        long s = 0;
-
-        while (Numbers.mod(t, new Numbers("2")).toStr().equals("0"))
-        {
-            t = new Numbers(Numbers.div(t, new Numbers("2")).toStr());
-            s++;
+        if (a.compareTo(BigInteger.ZERO) == -1){
+            a = a.negate();
+            if (b.mod(BigInteger.valueOf(4)).equals(BigInteger.valueOf(3))){
+                r = r.negate();
+            }
         }
 
-        for (int i = 0; i < k; i++)
-        {
-            byte[] _a = new byte[RSA.bits(n)];
+        while (!a.equals(BigInteger.ZERO)) {
+            BigInteger t = BigInteger.ZERO;
+            while (a.mod(BigInteger.valueOf(2)).equals(BigInteger.ZERO)){
+                t = t.add(BigInteger.ONE);
+                a  = a.divide(BigInteger.valueOf(2));
+            }
 
-            Numbers a;
+            if (!t.mod(BigInteger.valueOf(2)).equals(BigInteger.ZERO)) {
+                BigInteger mod = b.mod(BigInteger.valueOf(8));
 
-            do
-            {
-                Random rng = new Random();
-                for (int j = 0; j < _a.length; j++)
-                    _a[j] = rng.nextBoolean() ? (byte)1: (byte)0;
-
-                a = new Numbers("0");
-
-                for (int j = 0; j < _a.length; j++) {
-                    if (_a[j] == 1) {
-                        a = a.add(Numbers.pow(new Numbers("2"), j));
-                    }
+                if (mod.equals(BigInteger.valueOf(3)) || mod.equals(BigInteger.valueOf(5))) {
+                    r = r.negate();
                 }
             }
 
-            while (a.compareTo(new Numbers("2")) == -1 || (a.compareTo(new Numbers(n.sub(new Numbers("2")).toStr())) == 1 || a.toStr().equals(n.sub(new Numbers("2")).toStr())));
+            BigInteger modA = a.mod(BigInteger.valueOf(4));
 
-            Numbers x = new Numbers(Numbers.modPow(a, t, n).toStr());
-
-            if (x.toStr().equals("1") || x.toStr().equals(n.sub(new Numbers("1")).toStr()))
-                continue;
-
-            for (int r = 1; r < s; r++)
-            {
-                x = new Numbers(Numbers.modPow(x, new Numbers("2"), n).toStr());
-
-                if (x.toStr().equals("1"))
-                    return false;
-
-                if (x.toStr().equals(n.sub(new Numbers("1")).toStr()))
-                    break;
+            if (modA.equals(b.mod(BigInteger.valueOf(4))) && modA.equals(BigInteger.valueOf(3))) {
+                r = r.negate();
             }
-
-            if (!x.toStr().equals(n.sub(new Numbers("1")).toStr()))
-                return false;
+            BigInteger c = a;
+            a = b.mod(c);
+            b = c;
         }
+        return r;
+    }
 
+    public static final BigInteger ONE = new BigInteger("1");
+    public static final BigInteger TWO = new BigInteger("2");
+
+    public static Boolean soloveyShtrassIsPrime(BigInteger n, int k) {
+        if (n.equals(new BigInteger("3")) || n.equals(new BigInteger("2"))) {
+            return true;
+        }
+        for (int i = 0; i < k; i++) {
+            BigInteger a = new BigInteger("2").add((new BigInteger(10, new SecureRandom())).mod(n.subtract(new BigInteger("3"))));
+            if (a.gcd(n).compareTo(ONE) == 1) {
+                return false;
+            }
+            BigInteger s = a.modPow((n.subtract(ONE)).divide(TWO), n);
+            if (s.equals(n.subtract(ONE))) {
+                s = s.subtract(n);
+            }
+            BigInteger j = jacobi(a, n);
+            if (!(s).equals(j)) {
+                return false;
+            }
+        }
         return true;
     }
 }
